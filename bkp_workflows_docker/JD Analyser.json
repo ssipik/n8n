@@ -3,7 +3,7 @@
   "id": "XcUQfmFgojDAcnT9",
   "name": "JD Analyser",
   "description": null,
-  "active": false,
+  "active": true,
   "isArchived": false,
   "nodes": [
     {
@@ -11,7 +11,7 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 22
+              "triggerAtHour": 3
             }
           ]
         }
@@ -1252,9 +1252,21 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "wsid3rgVlwDcsfKA",
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "staticData": null,
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
   "meta": {
     "templateCredsSetupCompleted": true
   },
@@ -1280,7 +1292,7 @@
     }
   ],
   "versionMetadata": {
-    "name": null,
-    "description": null
+    "name": "Version 41aa31bf",
+    "description": ""
   }
 }
