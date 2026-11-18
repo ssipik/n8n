@@ -2,3 +2,7 @@
 .claude/*
 bkp_workflows/*
 jd-analyser/config/
+bkp_workflows_docker/My workflow.json
+jd-analyser/BUILD.md
+jd-analyser/gmail_auth.md
+jd-analyser/SETUP.md
