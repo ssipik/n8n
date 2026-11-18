@@ -1,0 +1,1251 @@
+{
+  "createdAt": "2026-11-12T22:46:33.019Z",
+  "id": "XcUQfmFgojDAcnT9",
+  "name": "JD Analyser",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 22
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -256,
+        -304
+      ],
+      "id": "ae4203f8-2189-4d88-917f-adf5ba430f38",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{ $json.cfg.gmail.maxMessages }}",
+        "simple": false,
+        "filters": {
+          "readStatus": "both",
+          "receivedAfter": "={{ $now.minus({ days: $json.cfg.gmail.windowDays }) }}",
+          "sender": "={{ '(' + $json.src.sender.join(' OR ') + ')' }}"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        -400
+      ],
+      "id": "77961108-b1a3-4564-9506-4bc9ee5962ba",
+      "name": "Linkedin Emails",
+      "webhookId": "605272c6-9784-427d-92b4-b2afd27fa1cd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "L2nJr21MRNtBZgTq",
+          "name": "Gmail account __PRIVATE_1__"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "/jd-config/sources.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -32,
+        -304
+      ],
+      "id": "00470b6d-4bc1-416b-bf76-4377aaa85829",
+      "name": "Read Config File"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.src.source === 'linkedin' && $json.src.enabled }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "b7654fa3-b2ba-4981-82dd-ede4c71d5000"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "linkedin"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "66f93be2-eefb-465e-b96f-d2c17cc44aa9",
+                    "leftValue": "={{ $json.src.source === 'indeed' && $json.src.enabled }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "indeed"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none",
+          "allMatchingOutputs": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        640,
+        -304
+      ],
+      "id": "189320e4-bd3a-4d24-9b59-2e6db8a79aca",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "cfg.sources",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "src"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        -304
+      ],
+      "id": "015a7ce5-b994-4a59-8331-50569d3a79c5",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "destinationKey": "cfg",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        -304
+      ],
+      "id": "4ca4bcfb-43a4-4dae-a215-b81a3c249a3c",
+      "name": "Parse Config"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "81b59d8b-3290-4fd4-96f8-13f04ee5c284",
+              "name": "cfg",
+              "value": "={{ $('Parse Config').first().json.cfg }}",
+              "type": "object"
+            },
+            {
+              "id": "72d356c6-4f60-4760-b7b3-bb66c4024137",
+              "name": "fetched_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1312,
+        -304
+      ],
+      "id": "a5567741-5d9b-44ed-b724-d06d90d0bb17",
+      "name": "Attach Config"
+    },
+    {
+      "parameters": {
+        "maxItems": "={{ $('Parse Config').first().json.cfg.run.limit }}"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        -304
+      ],
+      "id": "f5375d0f-20c7-49ab-8d60-25da3d9a7de0",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "={{ $json.actorId }}",
+          "mode": "id"
+        },
+        "customBody": "={{ $json.body }}",
+        "timeout": {},
+        "memory": 512,
+        "maxTotalChargeUsd": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        -304
+      ],
+      "id": "c15cde76-0580-4f01-bea0-7b8b3fc13b0f",
+      "name": "Scrape Jobs",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "apifyApi": {
+          "id": "VFpwyPbuFmJ5dJgC",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "/jd-config/*.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        3328,
+        -432
+      ],
+      "id": "6f5984b5-a98b-4cad-9cef-caa04920dcee",
+      "name": "Read Prompt",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{ $json.cfg.gmail.maxMessages }}",
+        "simple": false,
+        "filters": {
+          "readStatus": "both",
+          "receivedAfter": "={{ $now.minus({ days: $json.cfg.gmail.windowDays }) }}",
+          "sender": "={{ '(' + $json.src.sender.join(' OR ') + ')' }}"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        -208
+      ],
+      "id": "edc94ea8-4ebc-4a63-ab18-aa722458a506",
+      "name": "Indeed Emails",
+      "webhookId": "605272c6-9784-427d-92b4-b2afd27fa1cd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "khuhFT8JyTn840rQ",
+          "name": "Gmail account __PRIVATE_2__"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1088,
+        -304
+      ],
+      "id": "71b9cf7a-789f-48c7-8f89-415a14fa0ad0",
+      "name": "Merge inboxes"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "groups = {}\n\nfor item in _items:\n    j = item[\"json\"]\n    g = groups.setdefault(j[\"source\"], {\n        \"actorId\": j[\"actor_id\"],\n        \"inputKey\": j[\"input_key\"],\n        \"extra\": j.get(\"actor_input\") or {},\n        \"ids\": [],\n    })\n    g[\"ids\"].append(j[\"external_id\"])\n\nreturn [{\"json\": {\n    \"source\": source,\n    \"actorId\": g[\"actorId\"],\n    \"body\": {**g[\"extra\"], g[\"inputKey\"]: g[\"ids\"]},\n}} for source, g in groups.items()]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        -304
+      ],
+      "id": "23084521-6d4a-44fe-9080-c4f04650e9f4",
+      "name": "Build  Apify Input"
+    },
+    {
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YFYpQGIBxIwAtRpr",
+          "mode": "list",
+          "cachedResultName": "jd_jobs",
+          "cachedResultUrl": "/projects/LqU1LW8NIZWZxKbi/datatables/YFYpQGIBxIwAtRpr"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "key",
+              "keyValue": "={{ $json.key }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        -304
+      ],
+      "id": "ddfeb9ea-0014-4fcc-85dd-c7e030ace397",
+      "name": "Is New Job"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YFYpQGIBxIwAtRpr",
+          "mode": "list",
+          "cachedResultName": "jd_jobs",
+          "cachedResultUrl": "/projects/LqU1LW8NIZWZxKbi/datatables/YFYpQGIBxIwAtRpr"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2656,
+        -304
+      ],
+      "id": "807d65eb-a020-4877-a241-d70dda8eddf4",
+      "name": "Get Existing Jobs",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Parse Config').first().json.cfg;\nconst srcByName = new Map(cfg.sources.filter(s => s.enabled).map(s => [s.source, s]));\nconst byKey = new Map($('Limit').all().map(i => [i.json.key, i.json]));\n\n// Dotted paths, so fields.* can reach into nested actor output (\"title.text\").\nconst at = (o, path) => path.split('.')\n  .reduce((v, k) => (v === null || v === undefined ? undefined : v[k]), o);\n\n// First path present wins — fields.* in sources.json are ordered fallbacks.\nconst pick = (d, names) => {\n  for (const n of names || []) {\n    const v = at(d, n);\n    if (v !== undefined && v !== null) return v;\n  }\n  return '';\n};\n\n// Same posting on two job boards: compare normalised title + company.\nconst norm = s => String(s ?? '')\n  .replace(/[\\u200b\\u200c\\u200d\\ufeff]/g, '')\n  .replace(/\\u2019/g, \"'\").replace(/\\u00a0/g, ' ')\n  .toLowerCase().split(/\\s+/).filter(Boolean).join(' ');\nconst contentKey = (title, company) => `${norm(title)}|${norm(company)}`;\n\nconst already = new Map();\nfor (const row of $('Get Existing Jobs').all()) {\n  const r = row.json;\n  if (r.title && r.company) already.set(contentKey(r.title, r.company), r.key);\n}\n\nconst seen = new Set();\nconst out = [];\n\nfor (const item of $('Scrape Jobs').all()) {\n  const d = item.json;\n  // Read the id with each source's own mapping until one yields a key we asked for.\n  let base;\n  for (const s of srcByName.values()) {\n    const id = String(pick(d, s.fields.id));\n    if (id) base = byKey.get(`${s.source}:${id}`);\n    if (base) break;\n  }\n  if (!base) continue;                       // not something we asked for\n  seen.add(base.key);\n\n  const F = srcByName.get(base.source).fields;\n  const title = pick(d, F.title);\n  const company = pick(d, F.company);\n  const description = String(pick(d, F.description));\n  const closedVal = pick(d, F.closed);\n  const closed = closedVal === true || String(closedVal).toLowerCase() === 'closed';\n\n  const ck = contentKey(title, company);\n  const dupeOf = already.get(ck);\n\n  let skip = '';\n  if (closed) skip = 'closed';\n  else if (!description.trim()) skip = 'no description';\n  else if (dupeOf && dupeOf !== base.key) skip = `duplicate of ${dupeOf}`;\n\n  if (!skip) already.set(ck, base.key);      // also catches dupes within this run\n\n  out.push({ json: {\n    ...base,\n    title, company,\n    location: pick(d, F.location),\n    full_text: description,\n    status: skip ? 'skipped' : 'new',\n    skip_reason: skip,\n  }});\n}\n\n// Asked for but never returned — record it so we do not re-scrape nightly.\nfor (const base of byKey.values()) {\n  if (seen.has(base.key)) continue;\n  out.push({ json: {\n    ...base, title: '', company: '', location: '', full_text: '',\n    status: 'skipped', skip_reason: 'not returned by actor',\n  }});\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        -304
+      ],
+      "id": "0b762a35-8229-4712-b549-e19323ed869c",
+      "name": "Normalize Jobs"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "1d2ccf09-4be7-4361-987c-105d4d2d0e2c",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "'skipped'",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        3104,
+        -304
+      ],
+      "id": "96aab5ba-368b-4d9f-99bc-1c8be3f10ee0",
+      "name": "Is Scrapable"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {
+          "encoding": "utf8",
+          "keepSource": "json"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        3552,
+        -432
+      ],
+      "id": "c104c915-955c-4599-b631-5497544d4d16",
+      "name": "Extract Text"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "SLOT_BY_FILE = {\n  \"request.md\": \"request\",\n  \"profile.en.md\": \"profile_en\",\n  \"profile.de.md\": \"profile_de\",\n}\n\nslots = {\"request\": \"\", \"profile_en\": \"\", \"profile_de\": \"\"}\n\nfor item in _items:\n  j = item[\"json\"]\n  slot = SLOT_BY_FILE.get(j.get(\"fileName\") or \"\")\n  if slot:\n    slots[slot] = str(j.get(\"data\") or \"\").strip()\n\nif not slots[\"request\"]:\n  raise ValueError(\"Missing request.md in /jd-config\")\nif not slots[\"profile_en\"]:\n  raise ValueError(\"Missing profile.en.md in /jd-config\")\n\nprofile_de = slots[\"profile_de\"] or \"(not provided — use the English profile)\"\n\nsystem = (\n  slots[\"request\"] + \"\\n\\n\"\n  + \"=== USER PROFILE (English) ===\\n\" + slots[\"profile_en\"] + \"\\n\\n\"\n  + \"=== USER PROFILE (German) ===\\n\" + profile_de + \"\\n\"\n)\n\nreturn [{\"json\": {\"system\": system}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3776,
+        -432
+      ],
+      "id": "7a7bf105-8b99-44da-bb20-d851992983ef",
+      "name": "Build System Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Is Scrapable').all(0).map(i => ({ json: i.json }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        -432
+      ],
+      "id": "e5b9ae7b-5279-4dae-b957-b3d719eaba17",
+      "name": "Fan Out Jobs"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import re\n\ncfg = _items[0][\"json\"][\"cfg\"]\nsources = [s for s in cfg.get(\"sources\", []) if s.get(\"enabled\")]\nif not sources:\n    raise ValueError('sources.json: no enabled sources')\n\ncompiled = []\nfor s in sources:\n    where = f\"sources[{s.get('source') or '?'}]\"\n    if not s.get(\"source\"):\n        raise ValueError('sources.json: an entry has no \"source\"')\n    if not s.get(\"idPatterns\"):\n        raise ValueError(f\"sources.json: {where}.idPatterns is empty\")\n    if not s.get(\"jobUrlTemplate\"):\n        raise ValueError(f\"sources.json: {where}.jobUrlTemplate is empty\")\n    if not (s.get(\"apify\") or {}).get(\"actorId\"):\n        raise ValueError(f\"sources.json: {where}.apify.actorId is empty\")\n    if not (s.get(\"apify\") or {}).get(\"inputKey\"):\n        raise ValueError(f\"sources.json: {where}.apify.inputKey is empty\")\n    compiled.append((s, [re.compile(p, re.I) for p in s[\"idPatterns\"]]))\n\nout = []\nemitted = set()\n\nfor item in _items:\n    m = item[\"json\"]\n    body = \"\\n\".join([m.get(\"html\") or \"\", m.get(\"text\") or \"\", m.get(\"snippet\") or \"\"])\n    body = re.sub(r\"&amp;\", \"&\", body, flags=re.I)\n    body = re.sub(r\"&#x2f;\", \"/\", body, flags=re.I)\n    body = body.replace(\"&#47;\", \"/\")\n\n    for src, regexes in compiled:\n        for rx in regexes:\n            for hit in rx.finditer(body):\n                job_id = hit.group(1)\n                key = f\"{src['source']}:{job_id}\"\n                if key in emitted:\n                    continue\n                emitted.add(key)\n                out.append({\"json\": {\n                    \"key\": key,\n                    \"source\": src[\"source\"],\n                    \"external_id\": job_id,\n                    \"url\": src[\"jobUrlTemplate\"].replace(\"{id}\", job_id),\n                    \"fetched_at\": m.get(\"fetched_at\"),\n                    \"actor_id\": src[\"apify\"][\"actorId\"],\n                    \"input_key\": src[\"apify\"][\"inputKey\"],\n                    \"actor_input\": src[\"apify\"].get(\"input\") or {},\n                }})\n\nreturn out"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        -304
+      ],
+      "id": "8d0ec995-89f4-4f76-8312-425854ef7bd1",
+      "name": "Extract Job IDs"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ANALYSIS_SCHEMA = {\n  type: 'object',\n  properties: {\n    language: { type: 'string', enum: ['en', 'de', 'other'],\n      description: 'Language of the job description.' },\n    tone: { type: 'string',\n      description: \"Tone of the JD, e.g. 'formal' or 'casual'.\" },\n    profile_used: { type: 'string', enum: ['en', 'de'],\n      description: \"Which user profile language was matched against the JD. If no profile in the JD's language exists, use the English one and note it in the summary.\" },\n    fit_score: { type: 'integer',\n      description: \"How well the user profile matches the JD's hard and soft requirements, applying the gap rules and DISREGARDING personal preferences.\" },\n    combined_score: { type: 'integer',\n      description: 'How well the user profile AND the personal preference criteria match the JD.' },\n    summary: { type: 'string', description: 'Two or three sentences on overall fit.' },\n    pros: { type: 'array', items: { type: 'string' },\n      description: 'Strong points in the user profile for this specific JD.' },\n    cons_hard: { type: 'array', items: { type: 'string' },\n      description: 'Hard gaps (needed by the JD, likely disqualifying).' },\n    cons_soft: { type: 'array', items: { type: 'string' },\n      description: 'Soft gaps (nice-to-have / closeable per the gap rules).' },\n    like_verdict: { type: 'string', enum: ['like', 'neutral', 'dislike'],\n      description: 'Whether the user would WANT this job per the criteria (independent of whether they qualify).' },\n    like_rationale: { type: 'string' },\n    salary_range: { type: 'string',\n      description: 'Expected annual gross salary range, per the salary instructions.' },\n    salary_ask: { type: 'string',\n      description: 'Recommended salary to ask for, per the salary instructions.' },\n  },\n  required: ['language', 'tone', 'profile_used', 'fit_score', 'combined_score', 'summary',\n             'pros', 'cons_hard', 'cons_soft', 'like_verdict', 'like_rationale',\n             'salary_range', 'salary_ask'],\n  additionalProperties: false,\n};\n\nconst llm = $('Parse Config').first().json.cfg.llm;\nconst j = $json;\n\n// analyzer.py:129-139\nconst user =\n  'Assess this job posting for the candidate.\\n\\n' +\n  `Title: ${j.title}\\n` +\n  `Company: ${j.company}\\n` +\n  `Location: ${j.location || '(unspecified)'}\\n` +\n  `URL: ${j.url || '(none)'}\\n\\n` +\n  '--- JOB DESCRIPTION ---\\n' +\n  `${j.full_text}\\n`;\n\nreturn { json: { ...j, body: {\n  model: llm.model,\n  max_tokens: llm.maxTokens,\n  system: [{\n    type: 'text',\n    text: $('Build System Prompt').first().json.system,\n    cache_control: { type: 'ephemeral' },\n  }],\n  output_config: {\n    effort: llm.effort,\n    format: { type: 'json_schema', schema: ANALYSIS_SCHEMA },\n  },\n  messages: [{ role: 'user', content: user }],\n}}};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4224,
+        -432
+      ],
+      "id": "227d1b26-9c8b-4a25-9fd3-15f2aa14d1cd",
+      "name": "Build Anthropic Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4448,
+        -432
+      ],
+      "id": "f6cfdf18-0736-4840-83c8-61fc590a3419",
+      "name": "Anthropic",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "anthropicApi": {
+          "id": "KSRnWJm2jgQF4KMo",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const res = $json;\n\nif (res.stop_reason === 'max_tokens') throw new Error('Reply hit max_tokens — JSON truncated.');\nif (res.stop_reason === 'refusal') {\n  throw new Error(`Model refused: ${res.stop_details?.category ?? 'unknown'}.`);\n}\n\n// Thinking blocks come before the answer on this model, so find the text block, don't index it.\nconst text = (res.content || []).find(c => c.type === 'text')?.text;\nif (!text) throw new Error('No text block in the response.');\n\nconst analysis = JSON.parse(text);\n\n// The schema can no longer carry minimum/maximum, so the 0-100 range is enforced here.\nconst clamp = (n) => Math.min(100, Math.max(0, Math.round(Number(n) || 0)));\nanalysis.fit_score = clamp(analysis.fit_score);\nanalysis.combined_score = clamp(analysis.combined_score);\n\nconst { body, ...job } = $('Build Anthropic Request').item.json;\n\nreturn { json: {\n  ...job,\n  analysis,\n  status: 'analysed',\n  analysed_at: new Date().toISOString(),\n  usage: res.usage,\n}};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4672,
+        -512
+      ],
+      "id": "e08f4bcd-9229-43c8-b454-d0136af3bab6",
+      "name": "Extract Analysis",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const { body, ...job } = $('Build Anthropic Request').item.json;\nreturn { json: {\n  ...job,\n  status: 'error',\n  skip_reason: String($json.error?.message ?? $json.error ?? 'LLM call failed'),\n}};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4928,
+        -144
+      ],
+      "id": "e37fc91c-ce54-40f1-9ac5-6707d8a23ee9",
+      "name": "Mark Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Parse Config').first().json.cfg;\nconst THRESHOLD = c.digest.scoreThreshold;\nconst providerOf = new Map(c.sources.map(s => [s.source, s.provider]));\n\nconst esc = s => String(s ?? '')\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;').replace(/'/g, '&#39;');\n\nconst items = $input.all().map(i => i.json)\n  .filter(j => j.status === 'analysed' && j.analysis)\n  .sort((x, y) => y.analysis.fit_score - x.analysis.fit_score\n               || y.analysis.combined_score - x.analysis.combined_score);\n\nconst count = items.length;\nconst sourcesSeen = [...new Set(items.map(j => j.source))];\nconst PROVIDER = sourcesSeen.length === 1 ? (providerOf.get(sourcesSeen[0]) || 'JD') : 'JD';\nconst generated_at = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';\n\nconst list = (cls, heading, arr) => (arr && arr.length)\n  ? `<div class=\"section\"><h3>${heading}</h3><ul class=\"${cls}\">`\n    + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul></div>'\n  : '';\n\nconst cards = items.map(j => {\n  const a = j.analysis;\n  const sc = a.combined_score >= THRESHOLD ? 'score-high'\n           : a.combined_score >= THRESHOLD - 20 ? 'score-mid' : 'score-low';\n  return `\n  <div class=\"card ${a.combined_score < THRESHOLD ? 'below' : ''}\">\n    <h2>${esc(j.title)}</h2>\n    <div class=\"company\">${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</div>\n\n    <div class=\"badges\">\n      <span class=\"badge ${sc}\">${a.combined_score}% combined</span>\n      <span class=\"badge action\">${a.fit_score}% fit</span>\n      <span class=\"badge like-${esc(a.like_verdict)}\">would ${esc(a.like_verdict)}</span>\n      <span class=\"badge action\">${esc(String(a.language).toUpperCase())}${a.tone ? ' · ' + esc(a.tone) : ''}</span>\n      <span class=\"badge source\">${esc(providerOf.get(j.source) || j.source)}</span>\n    </div>\n\n    <div class=\"summary\">${esc(a.summary)}</div>\n    ${list('pros', 'Pros', a.pros)}\n    ${list('cons-hard', 'Hard gaps', a.cons_hard)}\n    ${list('cons-soft', 'Soft gaps', a.cons_soft)}\n\n    <div class=\"section\"><h3>Would you like it?</h3>\n      <div class=\"summary\">${esc(a.like_rationale)}</div></div>\n    ${(a.salary_range || a.salary_ask) ? `\n    <div class=\"section\"><h3>Salary</h3>\n      <div class=\"summary\">${esc(a.salary_range)}${a.salary_ask ? ' · recommended ask: ' + esc(a.salary_ask) : ''}</div></div>` : ''}\n    ${j.url ? `<div class=\"section\"><a href=\"${esc(j.url)}\">View posting →</a></div>` : ''}\n  </div>`;\n}).join('');\n\nconst html = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<style>\n  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;\n         color: #1a1a1a; background: #f4f5f7; margin: 0; padding: 16px; }\n  .wrap { max-width: 720px; margin: 0 auto; }\n  h1 { font-size: 18px; margin: 0 0 4px; }\n  .meta { color: #6b7280; font-size: 13px; margin-bottom: 16px; }\n  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;\n          padding: 16px 18px; margin-bottom: 14px; }\n  .card h2 { font-size: 16px; margin: 0 0 2px; }\n  .company { color: #374151; font-size: 14px; margin-bottom: 10px; }\n  .badges { margin-bottom: 10px; }\n  .badge { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px;\n           padding: 2px 10px; margin-right: 6px; color: #fff; }\n  .action { background: #374151; }\n  .source { background: #fff; color: #374151; border: 1px solid #d1d5db; }\n  .like-like { background: #047857; } .like-neutral { background: #6b7280; }\n  .like-dislike { background: #b91c1c; }\n  .score-high { background: #047857; } .score-mid { background: #b45309; }\n  .score-low { background: #6b7280; }\n  .summary { white-space: pre-wrap; font-size: 14px; margin: 8px 0; }\n  .section { margin-top: 10px; }\n  .section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .03em;\n                color: #6b7280; margin: 0 0 4px; }\n  ul { margin: 0; padding-left: 18px; font-size: 14px; }\n  .pros li { color: #065f46; } .cons-hard li { color: #991b1b; } .cons-soft li { color: #92400e; }\n  a { color: #1d4ed8; }\n  .below { opacity: .72; }\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n  <h1>Job digest — ${count} new job${count === 1 ? '' : 's'}</h1>\n  <div class=\"meta\">Generated ${generated_at} · highlighting matches ≥ ${THRESHOLD}%</div>\n${cards}\n</div>\n</body>\n</html>`;\n\nreturn [{ json: { count, html, subject: `${PROVIDER} JD digest — ${count} new job(s)` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5344,
+        -304
+      ],
+      "id": "e8e177dc-da32-41a2-80c3-a244cc2e4d9d",
+      "name": "Render Digest"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "222f65ed-3bcc-44e3-89a3-fc46f0d827bb",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        5568,
+        -304
+      ],
+      "id": "4b368ed0-1f86-400e-918d-1696f5d9e5e1",
+      "name": "Has Jobs"
+    },
+    {
+      "parameters": {
+        "fromEmail": "__EMAIL_1__",
+        "toEmail": "__EMAIL_2__",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        5792,
+        -304
+      ],
+      "id": "04f19e37-b67d-4a60-945d-408e497d5cfd",
+      "name": "Send an Email",
+      "webhookId": "ace72e57-2c67-4069-83b1-6995d423b94e",
+      "credentials": {
+        "smtp": {
+          "id": "EhGxB0ePsEbl1muz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\n\nreturn $('Merge Streams').all().map(i => {\n  const j = i.json;\n  const analysed = j.status === 'analysed';\n  return { json: {\n    key: j.key,\n    source: j.source,\n    external_id: j.external_id,\n    url: j.url || '',\n    title: j.title || '',\n    company: j.company || '',\n    location: j.location || '',\n    full_text: j.full_text || '',\n    status: analysed ? 'notified' : j.status,\n    fit_score: j.analysis ? j.analysis.fit_score : 0,\n    combined_score: j.analysis ? j.analysis.combined_score : 0,\n    analysis_json: j.analysis ? JSON.stringify(j.analysis) : '',\n    skip_reason: j.skip_reason || '',\n    fetched_at: j.fetched_at || '',\n    analysed_at: j.analysed_at || '',\n    notified_at: analysed ? now : '',\n  }};\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6016,
+        -304
+      ],
+      "id": "adb85bc2-a131-4667-b306-a8853f11e5da",
+      "name": "Collect For Persist"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5120,
+        -320
+      ],
+      "id": "dea4501b-56bf-4edb-bddb-f51be3362d3a",
+      "name": "Merge Streams"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YFYpQGIBxIwAtRpr",
+          "mode": "list",
+          "cachedResultName": "jd_jobs",
+          "cachedResultUrl": "/projects/LqU1LW8NIZWZxKbi/datatables/YFYpQGIBxIwAtRpr"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "key",
+              "keyValue": "={{ $json.key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "key",
+              "displayName": "key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "full_text",
+              "displayName": "full_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fit_score",
+              "displayName": "fit_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "combined_score",
+              "displayName": "combined_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "analysis_json",
+              "displayName": "analysis_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "skip_reason",
+              "displayName": "skip_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "analysed_at",
+              "displayName": "analysed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notified_at",
+              "displayName": "notified_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6240,
+        -304
+      ],
+      "id": "bcf3dec6-2cb0-4876-8976-b54e5a05e86a",
+      "name": "Save Jobs",
+      "executeOnce": false
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Config File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Config File": {
+      "main": [
+        [
+          {
+            "node": "Parse Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Linkedin Emails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Indeed Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkedin Emails": {
+      "main": [
+        [
+          {
+            "node": "Merge inboxes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Config": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Config": {
+      "main": [
+        [
+          {
+            "node": "Extract Job IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Build  Apify Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Jobs": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge inboxes": {
+      "main": [
+        [
+          {
+            "node": "Attach Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indeed Emails": {
+      "main": [
+        [
+          {
+            "node": "Merge inboxes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Build  Apify Input": {
+      "main": [
+        [
+          {
+            "node": "Scrape Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Job": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Jobs": {
+      "main": [
+        [
+          {
+            "node": "Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Jobs": {
+      "main": [
+        [
+          {
+            "node": "Is Scrapable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Scrapable": {
+      "main": [
+        [
+          {
+            "node": "Read Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Streams",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read Prompt": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Build System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Fan Out Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Job IDs": {
+      "main": [
+        [
+          {
+            "node": "Is New Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan Out Jobs": {
+      "main": [
+        [
+          {
+            "node": "Build Anthropic Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Anthropic Request": {
+      "main": [
+        [
+          {
+            "node": "Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Extract Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge Streams",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Error": {
+      "main": [
+        [
+          {
+            "node": "Merge Streams",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Render Digest": {
+      "main": [
+        [
+          {
+            "node": "Has Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Jobs": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Collect For Persist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Streams": {
+      "main": [
+        [
+          {
+            "node": "Render Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect For Persist": {
+      "main": [
+        [
+          {
+            "node": "Save Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "createdAt": "2026-11-12T22:46:33.019Z",
+      "role": "workflow:owner",
+      "workflowId": "XcUQfmFgojDAcnT9",
+      "projectId": "LqU1LW8NIZWZxKbi",
+      "project": {
+        "createdAt": "2026-11-03T23:12:05.404Z",
+        "id": "LqU1LW8NIZWZxKbi",
+        "name": "__EMAIL_1__ __OWNER_NAME__ <__EMAIL_1__>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "45fbea42-c7c3-4196-8281-4f18f132c4b7"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
