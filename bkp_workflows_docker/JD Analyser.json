@@ -43,7 +43,7 @@
       "typeVersion": 2.2,
       "position": [
         864,
-        -400
+        -496
       ],
       "id": "77961108-b1a3-4564-9506-4bc9ee5962ba",
       "name": "Linkedin Emails",
@@ -278,7 +278,7 @@
       "typeVersion": 2.2,
       "position": [
         864,
-        -208
+        -288
       ],
       "id": "edc94ea8-4ebc-4a63-ab18-aa722458a506",
       "name": "Indeed Emails",
@@ -852,6 +852,36 @@
       "id": "bcf3dec6-2cb0-4876-8976-b54e5a05e86a",
       "name": "Save Jobs",
       "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{ $json.cfg.gmail.maxMessages }}",
+        "simple": false,
+        "filters": {
+          "readStatus": "both",
+          "receivedAfter": "={{ $now.minus({ days: $json.cfg.gmail.windowDays }) }}",
+          "sender": "={{ '(' + $json.src.sender.join(' OR ') + ')' }}"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        -80
+      ],
+      "id": "d08fa2e8-8f68-47ca-99bc-f59bb2f695b5",
+      "name": "Xing Emails",
+      "webhookId": "605272c6-9784-427d-92b4-b2afd27fa1cd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "L2nJr21MRNtBZgTq",
+          "name": "Gmail account __PRIVATE_1__"
+        }
+      }
     }
   ],
   "connections": {
@@ -1211,6 +1241,11 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Xing Emails": {
+      "main": [
+        []
       ]
     }
   },
