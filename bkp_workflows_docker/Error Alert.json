@@ -1,0 +1,95 @@
+{
+  "createdAt": "2026-11-09T00:41:38.118Z",
+  "id": "wsid3rgVlwDcsfKA",
+  "name": "Error Alert",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5c69d69f-2c1b-4f57-a5e3-a310c2df7143",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "fromEmail": "__EMAIL_1__",
+        "toEmail": "__EMAIL_1__",
+        "subject": "=n8n workflow failed: {{ $json.workflow.name }}",
+        "emailFormat": "text",
+        "text": "=Workflow: {{ $json.workflow.name }}\nFailed node: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nExecution: {{ $json.execution.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e04d01a8-f264-4ebb-af36-2b8ef403ecb4",
+      "name": "Send an Email",
+      "webhookId": "c3ef5ce6-c8f9-4fbf-b2ff-a7a48a395711",
+      "credentials": {
+        "smtp": {
+          "id": "EhGxB0ePsEbl1muz",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "createdAt": "2026-11-09T00:41:38.118Z",
+      "role": "workflow:owner",
+      "workflowId": "wsid3rgVlwDcsfKA",
+      "projectId": "LqU1LW8NIZWZxKbi",
+      "project": {
+        "createdAt": "2026-11-03T23:12:05.404Z",
+        "id": "LqU1LW8NIZWZxKbi",
+        "name": "__EMAIL_1__ __OWNER_NAME__ <__EMAIL_1__>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "45fbea42-c7c3-4196-8281-4f18f132c4b7"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 2d057d9f",
+    "description": ""
+  }
+}
