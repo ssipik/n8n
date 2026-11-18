@@ -1,0 +1,452 @@
+{
+  "createdAt": "2026-11-08T15:32:49.389Z",
+  "id": "59flhYmswyKWVqbU",
+  "name": "Container Watchdog",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -320,
+        -80
+      ],
+      "id": "afe16814-72be-4683-a874-371947d83f51",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "MISSING = \"container missing (removed or stack down)\"\n\n# Split the merged input: Docker containers vs. rows saved by the previous run\ncontainers = []\nprevious = {}\nfor item in _items:\n    row = item[\"json\"]\n    if \"Names\" in row:                  # came from the HTTP Request (Docker API)\n        containers.append(row)\n    elif row.get(\"name\"):               # came from the Data Table\n        previous[row[\"name\"]] = row\n\n# Evaluate every container's current state\ncurrent = {}\nignored = set()\nfor c in containers:\n    name = c[\"Names\"][0].lstrip(\"/\")\n    labels = c.get(\"Labels\") or {}\n    if labels.get(\"watchdog.ignore\") == \"true\":\n        ignored.add(name)\n        continue\n    state = c.get(\"State\", \"\")\n    if state == \"created\":\n        continue\n    project = labels.get(\"com.docker.compose.project\")\n    service = labels.get(\"com.docker.compose.service\")\n    label = f\"{project} / {service}\" if project else f\"(standalone) {name}\"\n\n    status = c.get(\"Status\", \"\")\n    health = (c.get(\"Health\") or {}).get(\"Status\")\n    problem = \"\"\n    if state == \"restarting\":\n        problem = \"restart loop\"\n    elif state in (\"exited\", \"dead\"):\n        if status.startswith(\"Exited (\"):\n            code = status[len(\"Exited (\"):status.index(\")\")]\n            problem = f\"{state} (exit code {code})\"\n        else:\n            problem = state\n    elif health == \"unhealthy\":\n        problem = \"unhealthy (healthcheck failing)\"\n    current[name] = {\"name\": name, \"label\": label, \"problem\": problem}\n\n# Compare with the previous run\nout = []\nlines = []\n\n# Containers that exist now\nfor name, now in current.items():\n    before = previous.get(name)\n    old_problem = (before.get(\"problem\") or \"\") if before else \"\"\n    old_label = (before.get(\"label\") or \"\") if before else \"\"\n    if before is None or old_problem != now[\"problem\"] or old_label != now[\"label\"]:\n        out.append({\"json\": {\"action\": \"save\", **now}})\n    if now[\"problem\"] and now[\"problem\"] != old_problem:\n        lines.append(f\"🔴 {now['label']}: {now['problem']}\")\n    elif not now[\"problem\"] and old_problem:\n        lines.append(f\"✅ {now['label']}: recovered\")\n\n# Containers we knew about that are gone now\nfor name, before in previous.items():\n    if name in current:\n        continue\n    if name in ignored:\n        # now carries watchdog.ignore -> forget it silently\n        out.append({\"json\": {\"action\": \"delete\", \"name\": name}})\n        continue\n    old_problem = before.get(\"problem\") or \"\"\n    if old_problem != MISSING:\n        # keep it in the table, marked as missing, so its return counts as recovery\n        label = before.get(\"label\") or name\n        out.append({\"json\": {\"action\": \"save\", \"name\": name, \"label\": label, \"problem\": MISSING}})\n        lines.append(f\"🔴 {label}: {MISSING}\")\n\nif lines:\n    text = \"🖥️ beelink container watchdog\\n\\n\" + \"\\n\".join(lines)\n    out.append({\"json\": {\"action\": \"notify\", \"text\": text}})\n\nreturn out"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -80
+      ],
+      "id": "cb66886b-80c0-4f7d-9255-dfee32274d50",
+      "name": "Compare"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "save",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "dd20a589-ecf5-4c18-943c-7c059a2bde71"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "save"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "089a8af8-41f2-47e7-b687-fcc4fb36eefb",
+                    "leftValue": "=  {{ $json.action }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "delete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "4b524217-1489-4dac-b068-7825d1098cf2",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "notify",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "notify"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        128,
+        -96
+      ],
+      "id": "55200123-7a63-46ca-afd4-6f20c170ac32",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "XY3OmNi9feZZ455h",
+          "mode": "list",
+          "cachedResultName": "watchdog_state",
+          "cachedResultUrl": "/projects/LqU1LW8NIZWZxKbi/datatables/XY3OmNi9feZZ455h"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "name",
+              "keyValue": "={{ $json.name }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.name }}",
+            "label": "={{ $json.label }}",
+            "problem": "={{ $json.problem }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "label",
+              "displayName": "label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "problem",
+              "displayName": "problem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        -272
+      ],
+      "id": "89df91b1-d15f-4581-a141-db56c4f620e9",
+      "name": "Save Data"
+    },
+    {
+      "parameters": {
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "value": "XY3OmNi9feZZ455h",
+          "mode": "list",
+          "cachedResultName": "watchdog_state",
+          "cachedResultUrl": "/projects/LqU1LW8NIZWZxKbi/datatables/XY3OmNi9feZZ455h"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "name",
+              "keyValue": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        -80
+      ],
+      "id": "21a00372-c154-46c5-b4bc-2e81c000340f",
+      "name": "Delete Data"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -768,
+        -80
+      ],
+      "id": "79890a24-f333-40b7-acbd-5e5c437a6ee4",
+      "name": "Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://docker-socket-proxy:2375/containers/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "all",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -544,
+        -176
+      ],
+      "id": "aa8ac763-6ce4-4c6d-9b0e-6543b03d51c6",
+      "name": "Scan Current State"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "XY3OmNi9feZZ455h",
+          "mode": "list",
+          "cachedResultName": "watchdog_state",
+          "cachedResultUrl": "/projects/LqU1LW8NIZWZxKbi/datatables/XY3OmNi9feZZ455h"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -544,
+        16
+      ],
+      "id": "00f98bc9-75e5-4d22-9eec-f3d56cf17416",
+      "name": "Get Previous State",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ntfy",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  topic:    \"beelink-alerts\",\n  title:    $json.text.split(\"\\n\")[0],\n  message:  $json.text.split(\"\\n\").slice(2).join(\"\\n\"),\n  priority: 4,\n  tags:     [\"rotating_light\"]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        352,
+        112
+      ],
+      "id": "d130be35-c82d-4856-b1c8-27ea76dac196",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "sc8TuBmRJp7XbiAC",
+          "name": "Header Auth ntfy beekeeper-alerts"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Compare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Save Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Previous State",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Scan Current State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Current State": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Previous State": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "wsid3rgVlwDcsfKA",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "timeSavedPerExecution": 1
+  },
+  "staticData": {
+    "node:Trigger": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "createdAt": "2026-11-08T15:32:49.389Z",
+      "role": "workflow:owner",
+      "workflowId": "59flhYmswyKWVqbU",
+      "projectId": "LqU1LW8NIZWZxKbi",
+      "project": {
+        "createdAt": "2026-11-03T23:12:05.404Z",
+        "id": "LqU1LW8NIZWZxKbi",
+        "name": "__EMAIL_1__ __OWNER_NAME__ <__EMAIL_1__>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "45fbea42-c7c3-4196-8281-4f18f132c4b7"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 8e51a4fb",
+    "description": ""
+  }
+}
